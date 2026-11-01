@@ -14,7 +14,21 @@ function write(key, value) {
   window.localStorage.setItem(key, JSON.stringify(value))
 }
 
-export const loadSkinRecord = () => read(SKIN_KEY, {})
+export const loadSkinRecord = () => {
+  const record = read(SKIN_KEY, {})
+  const answers = record.answers
+  if (!answers || answers.reactionType || !answers.reaction) return record
+  const reactionType = answers.reaction === '겪은 적 없음'
+    ? '특별한 반응 경험 없음'
+    : answers.reaction.includes('레티놀')
+      ? '레티놀 계열'
+      : answers.reaction.includes('비타민')
+        ? '비타민 C 계열'
+        : answers.reaction.includes('각질')
+          ? '각질 제거 성분(AHA/BHA 등)'
+          : '기타'
+  return { ...record, answers: { ...answers, reactionType } }
+}
 export const saveSkinRecord = (record) => write(SKIN_KEY, record)
 export const loadCabinetRecords = () => read(CABINET_KEY, [])
 export const saveCabinetRecords = (records) => write(CABINET_KEY, records)

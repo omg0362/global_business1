@@ -79,7 +79,8 @@ const skinQuestions = [
   ['skinType', '피부 유형', '현재 알고 있는 피부 유형을 자유롭게 적어주세요.', 'text'],
   ['concern', '가장 해결하고 싶은 피부 고민', '수분 부족 및 속당김 해결|장벽 강화 및 민감성 트러블 완화|미백 및 색소 침착 개선|주름 및 탄력 개선|더 이상의 화장품 구매 실패와 돈 낭비 방지', 'select'],
   ['sensitivity', '피부 민감도', '평소 피부가 민감하다고 느끼는 정도나 상황을 자유롭게 적어주세요.', 'text'],
-  ['reaction', '최근 피부 반응 및 화장품 사용 경험', '레티놀(비타민A) 계열에서 겪음|비타민C 계열에서 겪음|각질 제거 성분에서 겪음|기타|겪은 적 없음', 'select'],
+  ['reactionType', '반응이 있었던 제품 또는 성분', '각질 제거 성분(AHA/BHA 등)|비타민 C 계열|레티놀 계열|기타|특별한 반응 경험 없음', 'select'],
+  ['reactionSymptoms', '경험한 피부 반응', '붉어짐|따가움 또는 화끈거림|건조함|가려움|각질 증가|기타', 'select'],
   ['factor', '피부 상태에 영향을 주는 요인', '계절 변화 및 환절기|생리 주기 등 호르몬 변화|수면 부족 및 스트레스|맞지 않는 새로운 화장품 사용|미세먼지 등 외부 환경', 'select'],
   ['goal', '중요하게 생각하는 피부 관리 목표', '내 피부에 맞는 새로운 화장품 추천|이미 구매한 방치템을 계절별·조합별로 활용하는 방법|두 가지 모두 원함', 'select'],
 ]
@@ -110,7 +111,7 @@ function ImageInput({ value, onChange, tone = 'skin', label }) {
   return <div className={`image-input ${tone}`}>{value?.url ? <><img src={value.url} alt={`${label} 미리보기`} /><div className="image-actions"><label className="small-button">다른 이미지 선택<input type="file" accept="image/*" capture="environment" onChange={choose} /></label><button type="button" className="small-button" onClick={() => onChange(null)}>삭제</button></div></> : <label className="upload-box"><input type="file" accept="image/*" capture="environment" onChange={choose} /><span>{tone === 'skin' ? '◌' : '⌂'}</span><b>{label} 선택</b><small>JPG, PNG 등 이미지 · 최대 10MB</small></label>}{error && <p className="form-error">{error}</p>}</div>
 }
 
-function SkinFlow() {
+function LegacySkinFlow() {
   const [image, setImage] = useState(null)
   const [answers, setAnswers] = useState(() => loadSkinRecord().answers || {})
   const [step, setStep] = useState(1)
@@ -123,7 +124,7 @@ function SkinFlow() {
   return <main className="flow-page skin"><FlowHeader tone="skin" title={step === 1 ? '피부 사진을 기록해 주세요.' : '현재 피부 이야기를 들려주세요.'} step={step} onBack={step === 2 ? () => setStep(1) : null} /><section className="flow-body section-shell">{step === 1 ? <article className="form-card"><p className="entry-kicker">IMAGE RECORD</p><h2>피부 촬영 또는 이미지 업로드 <b>필수</b></h2><p>사진은 분석하거나 서버로 전송하지 않으며, 이 탭에서만 미리보기로 사용됩니다.</p><ImageInput value={image} onChange={setImage} label="피부 사진" /><button className="cta" disabled={!image} onClick={() => setStep(2)}>다음: 피부 정보 기록 <span>→</span></button></article> : <article className="form-card"><p className="entry-kicker">SKIN QUESTIONNAIRE</p><h2>피부 정보 기록</h2><p>README의 심층 설문 초안을 바탕으로 한 기록이에요. 선택지는 추후 확정될 수 있습니다.</p><div className="question-list">{skinQuestions.map(([key, label, detail, type]) => <label key={key} className="field"><span>{label}{['concern', 'reaction', 'factor', 'goal'].includes(key) && <b>필수</b>}</span>{type === 'select' ? <select value={answers[key] || ''} onChange={(e) => setAnswer(key, e.target.value)}><option value="">선택해 주세요</option>{detail.split('|').map((option) => <option key={option}>{option}</option>)}</select> : <input value={answers[key] || ''} onChange={(e) => setAnswer(key, e.target.value)} placeholder={detail} />}</label>)}</div>{notice && <p className="form-error">{notice}</p>}<button className="cta" onClick={() => { if (!requiredReady) setNotice('필수 항목과 피부 사진을 확인해 주세요.'); else setStep(3) }}>입력 내용 확인 <span>→</span></button></article>}</section></main>
 }
 
-function ProductForm({ product, onSave, onCancel }) {
+function LegacyProductForm({ product, onSave, onCancel }) {
   const [draft, setDraft] = useState(product || { name: '', brand: '', type: '', ingredients: '', date: '', inUse: '', effect: '', reason: '', note: '' })
   const [image, setImage] = useState(product?.image || null)
   const [error, setError] = useState('')
@@ -131,13 +132,92 @@ function ProductForm({ product, onSave, onCancel }) {
   return <article className="form-card cabinet-form"><p className="entry-kicker">{product ? 'EDIT PRODUCT' : 'ADD PRODUCT'}</p><h2>{product ? '제품 정보 수정' : '화장품 직접 등록'}</h2><div className="product-form"><label className="field"><span>제품명 <b>필수</b></span><input value={draft.name} onChange={(e) => change('name', e.target.value)} placeholder="제품명을 입력해 주세요" /></label><label className="field"><span>브랜드명 <i>선택</i></span><input value={draft.brand} onChange={(e) => change('brand', e.target.value)} /></label><label className="field"><span>제품 유형 <i>선택</i></span><select value={draft.type} onChange={(e) => change('type', e.target.value)}><option value="">선택해 주세요</option>{productTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label className="field"><span>주요 성분 <i>선택</i></span><input value={draft.ingredients} onChange={(e) => change('ingredients', e.target.value)} placeholder="직접 기록할 수 있어요" /></label><label className="field"><span>구매 또는 개봉 시기 <i>선택</i></span><input type="month" value={draft.date} onChange={(e) => change('date', e.target.value)} /></label><label className="field"><span>현재 사용 여부 <i>선택</i></span><select value={draft.inUse} onChange={(e) => change('inUse', e.target.value)}><option value="">선택해 주세요</option><option>사용 중</option><option>현재 사용하지 않음</option></select></label><label className="field wide"><span>사용했을 때 피부 반응이나 효과 <i>선택</i></span><textarea value={draft.effect} onChange={(e) => change('effect', e.target.value)} /></label><label className="field"><span>계속 사용하지 않게 된 이유 <i>선택</i></span><select value={draft.reason} onChange={(e) => change('reason', e.target.value)}><option value="">선택해 주세요</option>{abandonReasons.map((reason) => <option key={reason}>{reason}</option>)}</select></label><label className="field"><span>추가 메모 <i>선택</i></span><textarea value={draft.note} onChange={(e) => change('note', e.target.value)} /></label></div><ImageInput value={image} onChange={setImage} tone="cabinet" label="제품 이미지" /><div className="form-actions"><button className="cta" onClick={() => { if (!draft.name.trim()) setError('제품명은 필수 입력 항목입니다.'); else onSave({ ...draft, id: product?.id || crypto.randomUUID(), image }) }}>{product ? '수정 저장' : '제품 등록'} <span>→</span></button>{onCancel && <button className="text-button" onClick={onCancel}>취소</button>}</div>{error && <p className="form-error">{error}</p>}</article>
 }
 
-function CabinetFlow() {
+function LegacyCabinetFlow() {
   const [products, setProducts] = useState(() => loadCabinetRecords())
   const [editing, setEditing] = useState(null)
   useEffect(() => { saveCabinetRecords(products.map(({ image, ...product }) => product)) }, [products])
   const save = (product) => { setProducts((all) => all.some((item) => item.id === product.id) ? all.map((item) => item.id === product.id ? product : item) : [...all, product]); setEditing(null) }
   const remove = (id) => setProducts((all) => all.filter((product) => product.id !== id))
   return <main className="flow-page cabinet"><FlowHeader tone="cabinet" title="내 화장대를 기록해 주세요." step={editing ? 2 : 1} onBack={editing ? () => setEditing(null) : null} /><section className="flow-body section-shell">{editing ? <ProductForm product={editing === 'new' ? null : editing} onSave={save} onCancel={() => setEditing(null)} /> : <><div className="list-heading"><div><p className="entry-kicker">MY PRODUCTS</p><h2>등록한 화장품 <b>{products.length}</b>개</h2></div><div className="list-actions"><a className="cta secondary" href="/integrated-review">통합 정보 확인</a><button className="cta" onClick={() => setEditing('new')}>새 제품 추가 <span>+</span></button></div></div>{products.length ? <div className="product-list">{products.map((product) => <article className="product-card" key={product.id}>{product.image?.url ? <img src={product.image.url} alt={`${product.name} 이미지`} /> : <div className="product-image">⌂</div>}<div><p>{product.type || '제품 유형 미입력'}</p><h3>{product.name}</h3><span>{product.brand || '브랜드 미입력'}</span>{product.inUse && <small>{product.inUse}</small>}</div><div className="card-actions"><button className="text-button" onClick={() => setEditing(product)}>수정</button><button className="text-button danger" onClick={() => remove(product.id)}>삭제</button></div></article>)}</div> : <article className="empty-cabinet"><span>⌂</span><h2>아직 등록한 화장품이 없어요.</h2><p>내 화장대에 있는 제품부터 천천히 기록해 보세요.</p><button className="cta secondary" onClick={() => setEditing('new')}>첫 제품 등록하기 <span>→</span></button></article>}<p className="privacy-note">제품 정보는 이 브라우저에만 임시 저장됩니다. 제품 이미지와 실제 성분 분석은 저장·연동하지 않습니다.</p></>}</section></main>
+}
+
+const reactionOptions = ['각질 제거 성분(AHA/BHA 등)', '비타민 C 계열', '레티놀 계열', '기타', '특별한 반응 경험 없음']
+const reactionSymptoms = ['붉어짐', '따가움 또는 화끈거림', '건조함', '가려움', '각질 증가', '기타']
+
+function legacyReactionType(reaction) {
+  if (!reaction || reaction === '겪은 적 없음') return reaction ? '특별한 반응 경험 없음' : ''
+  if (reaction.includes('레티놀')) return '레티놀 계열'
+  if (reaction.includes('비타민')) return '비타민 C 계열'
+  if (reaction.includes('각질')) return '각질 제거 성분(AHA/BHA 등)'
+  return '기타'
+}
+
+function SectionIcon({ type }) {
+  const icons = { skin: '◌', cabinet: '⌂', routine: '◒', sample: '✦', analysis: '◇' }
+  return <span className={`section-icon ${type}`} aria-hidden="true">{icons[type]}</span>
+}
+
+function SkinFlow() {
+  const saved = loadSkinRecord().answers || {}
+  const [image, setImage] = useState(null)
+  const [answers, setAnswers] = useState(() => ({ ...saved, reactionType: saved.reactionType || legacyReactionType(saved.reaction) }))
+  const [step, setStep] = useState(1)
+  const [notice, setNotice] = useState('')
+  useEffect(() => { saveSkinRecord({ answers, updatedAt: new Date().toISOString() }) }, [answers])
+  const change = (key, value) => {
+    setAnswers((current) => {
+      if (key !== 'reactionType') return { ...current, [key]: value }
+      const noReaction = value === '특별한 반응 경험 없음'
+      return { ...current, reactionType: value, reaction: noReaction ? '겪은 적 없음' : `${value} 사용 후 피부 불편감`, reactionSymptoms: noReaction ? '' : current.reactionSymptoms }
+    })
+  }
+  const noReaction = answers.reactionType === '특별한 반응 경험 없음'
+  const formReady = answers.concern && answers.reactionType && (noReaction || answers.reactionSymptoms) && answers.factor && answers.goal
+  const ready = image && formReady
+  const clear = () => { setImage(null); setAnswers({}); saveSkinRecord({}); setStep(1) }
+  if (step === 3) return <main className="flow-page skin"><FlowHeader tone="skin" title="입력 내용을 확인해 주세요." step={3} onBack={() => setStep(2)} /><section className="flow-body section-shell"><article className="summary-card"><div className="summary-top"><div className="title-with-icon"><SectionIcon type="skin" /><h2>피부 기록 요약</h2></div><button className="text-button" onClick={() => setStep(1)}>사진 수정</button></div>{image?.url ? <img className="summary-image" src={image.url} alt="선택한 피부 사진" /> : <p className="missing">이 세션에서 선택한 이미지가 없습니다. 이미지는 브라우저에 저장되지 않아요.</p>}<dl>{skinQuestions.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{answers[key] || <span className="missing">입력 필요</span>}</dd></div>)}</dl><div className="summary-actions"><button className="cta secondary" onClick={() => setStep(2)}>설문 수정</button><a className="cta" href="/integrated-review">통합 정보 확인 <span>→</span></a><button className="text-button danger" onClick={clear}>모든 입력 삭제</button></div></article><p className="privacy-note">이미지는 이 화면의 미리보기에만 사용되며 저장·전송되지 않습니다.</p></section></main>
+  return <main className="flow-page skin"><FlowHeader tone="skin" title={step === 1 ? '피부 사진을 기록해 주세요.' : '현재 피부 이야기를 들려주세요.'} step={step} onBack={step === 2 ? () => setStep(1) : null} /><section className="flow-body section-shell">{step === 1 ? <article className="form-card"><div className="title-with-icon"><SectionIcon type="skin" /><div><p className="entry-kicker">IMAGE RECORD</p><h2>피부 촬영 또는 이미지 업로드 <b>필수</b></h2></div></div><p>사진은 분석하거나 서버로 전송하지 않으며, 이 화면에서만 미리보기로 사용됩니다.</p><ImageInput value={image} onChange={setImage} label="피부 사진" /><button className="cta full-width-mobile" disabled={!image} onClick={() => setStep(2)}>다음: 피부 정보 기록 <span>→</span></button></article> : <article className="form-card"><div className="title-with-icon"><SectionIcon type="skin" /><div><p className="entry-kicker">SKIN QUESTIONNAIRE</p><h2>피부 정보 기록</h2></div></div><p>피부 반응은 어떤 제품에서, 어떤 불편감이 있었는지 나누어 기록해 주세요.</p><div className="question-list">{skinQuestions.filter(([key]) => key !== 'reactionSymptoms').map(([key, label, detail, type]) => <label key={key} className="field"><span>{label}{['concern', 'reactionType', 'factor', 'goal'].includes(key) && <b>필수</b>}</span>{type === 'select' ? <select value={answers[key] || ''} onChange={(e) => change(key, e.target.value)}><option value="">선택해 주세요</option>{detail.split('|').map((option) => <option key={option}>{option}</option>)}</select> : <input value={answers[key] || ''} onChange={(e) => change(key, e.target.value)} placeholder={detail} />}</label>)}{answers.reactionType && !noReaction && <label className="field reaction-symptoms"><span>경험한 피부 반응 <b>필수</b></span><select value={answers.reactionSymptoms || ''} onChange={(e) => change('reactionSymptoms', e.target.value)}><option value="">선택해 주세요</option>{reactionSymptoms.map((item) => <option key={item}>{item}</option>)}</select></label>}</div>{notice && <p className="form-error">{notice}</p>}<button className="cta full-width-mobile" onClick={() => { if (!ready) setNotice('필수 항목과 피부 사진을 확인해 주세요.'); else setStep(3) }}>입력 내용 확인 <span>→</span></button></article>}</section></main>
+}
+
+const demoProducts = [
+  { id: 'demo-toner', name: '카밍 밸런스 토너', brand: 'Glow Lab', type: '토너', ingredients: '판테놀, 글리세린' },
+  { id: 'demo-serum', name: '데일리 수분 세럼', brand: 'Pure Form', type: '세럼', ingredients: '히알루론산, 베타인' },
+  { id: 'demo-cream', name: '소프트 베리어 크림', brand: 'Morrow', type: '크림', ingredients: '세라마이드, 스쿠알란' },
+]
+
+function ProductForm({ product, initialDraft, entryMode, onSave, onCancel }) {
+  const [draft, setDraft] = useState(() => ({ name: '', brand: '', type: '', ingredients: '', date: '', inUse: '', usageFrequency: '', discomfort: '', effect: '', reason: '', note: '', ...initialDraft, ...product }))
+  const [image, setImage] = useState(product?.image || null)
+  const [error, setError] = useState('')
+  const change = (key, value) => setDraft((current) => ({ ...current, [key]: value }))
+  const save = () => {
+    if (!draft.name.trim()) return setError('제품명을 입력해 주세요.')
+    const inUse = draft.usageFrequency === '매일 사용' || draft.usageFrequency === '가끔 사용' ? '사용 중' : draft.usageFrequency ? '현재 사용하지 않음' : draft.inUse
+    onSave({ ...draft, inUse, id: product?.id || crypto.randomUUID(), image })
+  }
+  const title = product ? '제품 정보 수정' : entryMode === 'photo' ? '사진과 제품 정보를 등록해 주세요.' : '제품 정보를 등록해 주세요.'
+  return <article className="form-card cabinet-form"><div className="title-with-icon"><SectionIcon type="cabinet" /><div><p className="entry-kicker">{product ? 'EDIT PRODUCT' : entryMode === 'photo' ? 'PHOTO REGISTRATION' : 'PRODUCT DETAILS'}</p><h2>{title}</h2></div></div><p>{entryMode === 'photo' ? '사진은 이 화면에서만 미리보기로 사용됩니다.' : '필수 정보만 먼저 입력하고, 경험은 간결하게 남겨 보세요.'}</p><div className="product-form compact"><label className="field wide"><span>제품명 <b>필수</b></span><input value={draft.name} onChange={(e) => change('name', e.target.value)} placeholder="제품명을 입력해 주세요" /></label><label className="field"><span>브랜드</span><input value={draft.brand} onChange={(e) => change('brand', e.target.value)} placeholder="브랜드명" /></label><label className="field"><span>제품 종류</span><select value={draft.type} onChange={(e) => change('type', e.target.value)}><option value="">선택해 주세요</option>{productTypes.map((type) => <option key={type}>{type}</option>)}</select></label><label className="field wide"><span>주요 성분 <i>선택</i></span><input value={draft.ingredients} onChange={(e) => change('ingredients', e.target.value)} placeholder="알고 있는 경우 직접 기록해 주세요" /></label></div>{entryMode === 'photo' && <ImageInput value={image} onChange={setImage} tone="cabinet" label="제품 사진" />}<div className="choice-group"><span>사용 빈도</span><div>{['매일 사용', '가끔 사용', '현재 사용하지 않음', '최근 사용 중단'].map((item) => <button type="button" className={draft.usageFrequency === item ? 'choice selected' : 'choice'} onClick={() => change('usageFrequency', item)} key={item}>{item}</button>)}</div></div><div className="choice-group"><span>사용 중 불편했던 경험</span><div>{['없었어요', '있었어요'].map((item) => <button type="button" className={draft.discomfort === item ? 'choice selected' : 'choice'} onClick={() => change('discomfort', item)} key={item}>{item}</button>)}</div></div>{draft.discomfort === '있었어요' && <div className="product-form compact followup"><label className="field"><span>불편했던 이유</span><select value={draft.reason} onChange={(e) => change('reason', e.target.value)}><option value="">선택해 주세요</option>{abandonReasons.map((reason) => <option key={reason}>{reason}</option>)}</select></label><label className="field"><span>간단한 메모</span><input value={draft.effect} onChange={(e) => change('effect', e.target.value)} placeholder="예: 볼 주변이 따가웠어요" /></label></div>}<div className="form-actions"><button className="cta full-width-mobile" onClick={save}>{product ? '수정 저장' : '화장대에 등록'} <span>→</span></button><button type="button" className="text-button" onClick={onCancel}>취소</button></div>{error && <p className="form-error">{error}</p>}</article>
+}
+
+function CabinetFlow() {
+  const [products, setProducts] = useState(() => loadCabinetRecords())
+  const [screen, setScreen] = useState('list')
+  const [editing, setEditing] = useState(null)
+  const [selected, setSelected] = useState(null)
+  const [query, setQuery] = useState('')
+  const [barcode, setBarcode] = useState('')
+  useEffect(() => { saveCabinetRecords(products.map(({ image, ...product }) => product)) }, [products])
+  const save = (product) => { setProducts((all) => all.some((item) => item.id === product.id) ? all.map((item) => item.id === product.id ? product : item) : [...all, product]); setScreen('list'); setEditing(null); setSelected(null) }
+  const remove = (id) => setProducts((all) => all.filter((product) => product.id !== id))
+  const openMethod = (method) => { setSelected(null); setScreen(method) }
+  const results = demoProducts.filter((item) => `${item.brand} ${item.name}`.toLowerCase().includes(query.toLowerCase()))
+  const barcodeSupported = Boolean(navigator.mediaDevices?.getUserMedia)
+  const foundBarcode = barcode === '8800000000001' ? demoProducts[0] : barcode === '8800000000002' ? demoProducts[1] : null
+  if (screen === 'form') return <main className="flow-page cabinet"><FlowHeader tone="cabinet" title="내 화장대를 기록해 주세요." step={2} onBack={() => setScreen(editing ? 'list' : 'methods')} /><section className="flow-body section-shell"><ProductForm product={editing} initialDraft={selected} entryMode={selected?.entryMode || 'direct'} onSave={save} onCancel={() => setScreen('list')} /></section></main>
+  if (screen === 'search') return <main className="flow-page cabinet"><FlowHeader tone="cabinet" title="제품을 찾아볼까요?" step={1} onBack={() => setScreen('methods')} /><section className="flow-body section-shell"><article className="form-card search-card"><div className="title-with-icon"><SectionIcon type="cabinet" /><div><p className="entry-kicker">DEMO PRODUCT SEARCH</p><h2>제품명 또는 브랜드 검색</h2></div></div><p>외부 데이터베이스와 연결하지 않은 시연용 예시 제품입니다.</p><input className="search-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="예: Glow Lab 또는 토너" autoFocus />{query && <div className="search-results">{results.length ? results.map((item) => <button type="button" key={item.id} onClick={() => { setSelected(item); setEditing(null); setScreen('form') }}><span>{item.type}</span><b>{item.name}</b><small>{item.brand} · {item.ingredients}</small><i>등록 →</i></button>) : <p>일치하는 예시 제품이 없어요. 직접 등록해 보세요.</p>}</div>}</article></section></main>
+  if (screen === 'barcode') return <main className="flow-page cabinet"><FlowHeader tone="cabinet" title="바코드로 찾아볼까요?" step={1} onBack={() => setScreen('methods')} /><section className="flow-body section-shell"><article className="form-card barcode-card"><div className="title-with-icon"><SectionIcon type="cabinet" /><div><p className="entry-kicker">BARCODE DEMO</p><h2>바코드 번호 입력</h2></div></div><p>{barcodeSupported ? '이 브라우저는 카메라 사용을 지원합니다. 현재 프로토타입에서는 실제 스캔 대신 번호를 입력해 시연합니다.' : '이 환경에서는 카메라 사용을 확인할 수 없어 번호 입력 방식으로 시연합니다.'}</p><label className="field"><span>바코드 번호</span><input inputMode="numeric" value={barcode} onChange={(e) => setBarcode(e.target.value.replace(/\D/g, ''))} placeholder="시연 번호: 8800000000001" /></label>{foundBarcode ? <div className="barcode-found"><b>{foundBarcode.name}</b><span>{foundBarcode.brand} · {foundBarcode.type}</span><button className="cta" onClick={() => { setSelected(foundBarcode); setEditing(null); setScreen('form') }}>이 제품 등록 <span>→</span></button></div> : <p className="privacy-note">시연 번호는 8800000000001 또는 8800000000002입니다. 실제 바코드 조회는 구현되어 있지 않습니다.</p>}</article></section></main>
+  if (screen === 'methods') return <main className="flow-page cabinet"><FlowHeader tone="cabinet" title="어떤 방법으로 등록할까요?" step={1} onBack={() => setScreen('list')} /><section className="flow-body section-shell"><div className="method-heading"><div className="title-with-icon"><SectionIcon type="cabinet" /><div><p className="entry-kicker">ADD TO MY CABINET</p><h2>편한 방법을 선택해 주세요.</h2></div></div><p>검색과 바코드는 시연용 예시 데이터를 사용합니다.</p></div><div className="method-grid"><button onClick={() => openMethod('search')}><span>⌕</span><b>제품명 검색</b><small>예시 제품에서 찾기</small></button><button onClick={() => openMethod('barcode')}><span>▥</span><b>바코드 등록</b><small>번호 입력 시연</small></button><button onClick={() => { setSelected({ entryMode: 'direct' }); setEditing(null); setScreen('form') }}><span>＋</span><b>직접 등록</b><small>정보를 직접 입력</small></button><button onClick={() => { setSelected({ entryMode: 'photo' }); setEditing(null); setScreen('form') }}><span>◫</span><b>사진 등록</b><small>촬영 또는 사진 선택</small></button></div></section></main>
+  return <main className="flow-page cabinet"><FlowHeader tone="cabinet" title="내 화장대를 기록해 주세요." step={1} /><section className="flow-body section-shell"><div className="list-heading"><div className="title-with-icon"><SectionIcon type="cabinet" /><div><p className="entry-kicker">MY PRODUCTS</p><h2>등록한 화장품 <b>{products.length}</b>개</h2></div></div><div className="list-actions"><a className="cta secondary" href="/integrated-review">통합 정보 확인</a><button className="cta" onClick={() => setScreen('methods')}>제품 추가 <span>+</span></button></div></div>{products.length ? <div className="product-list">{products.map((product) => <article className="product-card" key={product.id}>{product.image?.url ? <img src={product.image.url} alt={`${product.name} 이미지`} /> : <div className="product-image">⌂</div>}<div><p>{product.type || '제품 유형 미입력'}</p><h3>{product.name}</h3><span>{product.brand || '브랜드 미입력'}</span>{product.usageFrequency && <small>{product.usageFrequency}</small>}</div><div className="card-actions"><button className="text-button" onClick={() => { setEditing(product); setSelected(null); setScreen('form') }}>수정</button><button className="text-button danger" onClick={() => remove(product.id)}>삭제</button></div></article>)}</div> : <article className="empty-cabinet"><SectionIcon type="cabinet" /><h2>아직 등록한 화장품이 없어요.</h2><p>내 화장대에 있는 제품부터 천천히 기록해 보세요.</p><button className="cta secondary" onClick={() => setScreen('methods')}>첫 제품 등록하기 <span>→</span></button></article>}<p className="privacy-note">제품 정보는 이 브라우저에만 저장됩니다. 제품 이미지와 실제 성분 분석은 저장·연동하지 않습니다.</p></section></main>
 }
 
 function IntegratedReview() {
@@ -153,7 +233,7 @@ const analysisSteps = ['피부 정보 확인', '피부 고민 및 민감도 분�
 
 function productInsight(product, answers) {
   if ((product.reason || '').includes('트러블')) return ['주의가 필요한 제품', '기록된 피부 반응을 고려해, 피부 컨디션이 편안한 날 낮은 빈도부터 다시 확인해 보세요.']
-  if (product.inUse === '현재 사용하지 않음' || product.reason) return ['사용 방법을 조정해볼 제품', '사용감과 경험을 기준으로 저녁 루틴에서 한 제품씩 천천히 활용해 보세요.']
+  if (product.inUse === '현재 사용하지 않음' || product.reason || product.discomfort === '있었어요') return ['사용 방법을 조정해볼 제품', '사용감과 경험을 기준으로 저녁 루틴에서 한 제품씩 천천히 활용해 보세요.']
   return ['현재 루틴에서 활용하기 좋은 제품', '현재 사용 중인 기록을 바탕으로 기본 루틴 안에서 한 겹씩 활용해 보세요.']
 }
 
