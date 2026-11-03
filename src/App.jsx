@@ -153,8 +153,14 @@ function legacyReactionType(reaction) {
 }
 
 function SectionIcon({ type }) {
-  const icons = { skin: '◌', cabinet: '⌂', routine: '◒', sample: '✦', analysis: '◇' }
-  return <span className={`section-icon ${type}`} aria-hidden="true">{icons[type]}</span>
+  const paths = {
+    skin: <><path d="M8 12c0-4.1 2.3-7 4-7s4 2.9 4 7c0 4.5-1.8 7-4 7s-4-2.5-4-7Z" /><path d="M10 12h.01M14 12h.01M10.5 15c1 .7 2 .7 3 0" /></>,
+    cabinet: <><path d="M6 8h12v11H6z" /><path d="M8 8V5h8v3M9 12h6M9 15h4" /></>,
+    routine: <><path d="M12 4v16M4 12h16" /><circle cx="12" cy="12" r="7" /></>,
+    sample: <><path d="m12 3 1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3Z" /></>,
+    analysis: <><path d="M5 18V9M10 18V5M15 18v-7M20 18V7" /><path d="M4 19h17" /></>,
+  }
+  return <span className={`section-icon ${type}`} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[type] || paths.analysis}</svg></span>
 }
 
 function SkinFlow() {
